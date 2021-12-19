@@ -112,7 +112,7 @@ def render(ww, sgroups, wgroups, labels={}):
 
     after = ['' if x is None else x for x in after]
     before = [' ' if x is None else x for x in before]
-    return u''.join(sum(zip(before, ww, labelafter, after), ())).strip().encode('utf-8')
+    return ''.join(sum(zip(before, ww, labelafter, after), ())).strip()
 
 
 def process_sentence(words, lemmas, tags, labels, parents, sentId=None):
