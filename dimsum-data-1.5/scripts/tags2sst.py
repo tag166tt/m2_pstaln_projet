@@ -219,7 +219,7 @@ def readsents(inF):
 def convert(inF, outF=sys.stdout, labelsInRenderedAnno=False):
     for sentId, data in readsents(inF):
         print(sentId,
-              render(zip(*data["words"])[0], data["_"], data["~"],
+              render(list(zip(*data["words"]))[0], data["_"], data["~"],
                      ({int(k): v[1] for k, v in data["labels"].items()} if labelsInRenderedAnno else {})),
               json.dumps(data), sep='\t', file=outF)
 
