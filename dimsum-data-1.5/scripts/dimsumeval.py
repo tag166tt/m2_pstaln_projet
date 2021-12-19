@@ -122,9 +122,9 @@ RE_TAGGING = re.compile(r'^(O|B(o|b[iīĩ]+|[IĪĨ])*[IĪĨ]+)+$')
 
 def require_valid_mwe_tagging(tagging, kind='tagging'):
     """Verifies the chunking is valid."""
-
+    t = [i.decode("utf-8") for i in tagging]
     # check regex
-    assert RE_TAGGING.match(''.join(map(str, tagging))), kind + ': ' + ''.join(map(str, tagging))
+    assert RE_TAGGING.match(''.join(t)), kind + ': ' + ''.join(t)
 
 
 def form_groups(links):
