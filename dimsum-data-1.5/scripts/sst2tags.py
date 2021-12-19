@@ -52,7 +52,7 @@ def convert(inF, outF=sys.stdout):
                     for h in range(i + 1, j):
                         gapstrength[h] = '_'
 
-        allparents = set(zip(*parents.values())[0]) if parents else set()
+        allparents = set(list(zip(*parents.values()))[0]) if parents else set()
 
         labels = {int(k): l for k, (w, l) in data["labels"].items()}
         for i, (w, pos) in enumerate(data["words"]):
@@ -73,7 +73,7 @@ def convert(inF, outF=sys.stdout):
 
             lemma = data["lemmas"][i]
 
-            print(i + 1, w.encode('utf-8'), lemma.encode('utf-8'), pos, tag.encode('utf-8'),
+            print(i + 1, w, lemma, pos, tag,
                   parent,
                   '',  # Don't print strength.
                   label, sentId, sep='\t', file=outF)
