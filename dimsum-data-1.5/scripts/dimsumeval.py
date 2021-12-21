@@ -478,7 +478,7 @@ if __name__ == '__main__':
                     header.append(' ' + colrs[d] + fmts[d](lbl[2:])[:4] + Colors.PLAINTEXT)
             # cross-POS confusions
             gconfsC = Counter([p for (g, p), n in conf.most_common() if g and p and g.startswith(d) for i in range(n)])
-            for lbl, n in sorted(gconfsC.most_common(), key=lambda l, lN: not l.startswith(d)):
+            for lbl, n in sorted(gconfsC.most_common(), key=lambda l: not l[0].startswith(d)):
                 if lbl not in lbls:
                     lbls.append(lbl)
                     # matrix.append([colrs[d2]+'{: >15}'.format(lbl)+Colors.PLAINTEXT+' {:5}'.format(n)])
