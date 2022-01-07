@@ -3,45 +3,109 @@ from Model import Model
 
 
 class Random_Model(Model):
-	def __init__(self, nb_class, class_exception=None, seed=0):
+	def __init__(self, nb_class, dict_class, seed=0):
 		super().__init__()
 		np.random.seed(seed)
 		self.nb_class = nb_class
-		self.class_exception = class_exception
+		self.dict_class = dict_class
+		self.nominals = [val for key, val in dict_class.items() if key.startswith('n.')]
+		self.verbals = [val for key, val in dict_class.items() if key.startswith('v.')]
 	
 	def fit(self, X, y):
 		pass
 	
 	def predict(self, X_test):
-		return np.random.randint(0, self.nb_class, size=len(X_test))
+		y_pred = []
+		for xi_test in X_test:
+			if xi_test[3] == 'NOUN':
+				y_pred.append(np.random.choice(self.nominals))
+			elif xi_test[3] == 'VERB':
+				y_pred.append(np.random.choice(self.verbals))
+			else:
+				y_pred.append(self.dict_class[''])
+		return np.array(y_pred)
 	
 	def score(self, X_test, y_test):
-		return super().score(X_test, y_test, self.class_exception)
+		return super().score(X_test, y_test, self.dict_class[''])
+
+
+class Random_Distribution_Model(Model):
+	def __init__(self, dict_class):
+		super().__init__()
+		self.y_pred = 0
+		self.dict_class = dict_class
+		self.nominals = [val for key, val in dict_class.items() if key.startswith('n.')]
+		self.verbals = [val for key, val in dict_class.items() if key.startswith('v.')]
+		self.nominals_dist = None
+		self.verbals_dist = None
+	
+	def fit(self, X, y):
+		y_nominals = []
+		y_verbals = []
+		for xi, yi in zip(X, y):
+			if xi[3] == 'NOUN':
+				y_nominals.append(yi)
+			elif xi[3] == 'VERB':
+				y_verbals.append(yi)
+		
+		self.nominals, self.nominals_dist = np.unique(y_nominals, return_counts=True)
+		self.nominals_dist = self.nominals_dist/np.sum(self.nominals_dist)
+		self.verbals, self.verbals_dist = np.unique(y_verbals, return_counts=True)
+		self.verbals_dist = self.verbals_dist/np.sum(self.verbals_dist)
+	
+	def predict(self, X_test):
+		y_pred = []
+		for xi_test in X_test:
+			if xi_test[3] == 'NOUN':
+				y_pred.append(np.random.choice(self.nominals, p=self.nominals_dist))
+			elif xi_test[3] == 'VERB':
+				y_pred.append(np.random.choice(self.verbals, p=self.verbals_dist))
+			else:
+				y_pred.append(self.dict_class[''])
+		return np.array(y_pred)
+	
+	def score(self, X_test, y_test):
+		return super().score(X_test, y_test, self.dict_class[''])
 
 
 class Majority_Class_Selection_Model(Model):
-	def __init__(self, class_exception=None):
+	def __init__(self, dict_class):
 		super().__init__()
 		self.y_pred = 0
-		self.class_exception = class_exception
+		self.dict_class = dict_class
+		self.nominals = [val for key, val in dict_class.items() if key.startswith('n.')]
+		self.verbals = [val for key, val in dict_class.items() if key.startswith('v.')]
+		self.most_nominal = None
+		self.most_verbal = None
 	
 	def fit(self, X, y):
-		if self.class_exception is None:
-			unique, counts = np.unique(y, return_counts=True)
-		else:
-			indices = np.where(y == self.class_exception)
-			y_ = np.delete(y, indices)
-			unique, counts = np.unique(y_, return_counts=True)
-		self.y_pred = np.argmax(counts, axis=0)
+		y_nominals = []
+		y_verbals = []
+		for xi, yi in zip(X, y):
+			if xi[3] == 'NOUN':
+				y_nominals.append(yi)
+			elif xi[3] == 'VERB':
+				y_verbals.append(yi)
+		
+		_, counts = np.unique(y_nominals, return_counts=True)
+		self.most_nominal = np.argmax(counts, axis=0)
+		_, counts = np.unique(y_verbals, return_counts=True)
+		self.most_verbal = np.argmax(counts, axis=0)
 	
 	def predict(self, X_test):
-		return np.array([self.y_pred for _ in range(len(X_test))])
+		y_pred = []
+		for xi_test in X_test:
+			if xi_test[3] == 'NOUN':
+				y_pred.append(self.most_nominal)
+			elif xi_test[3] == 'VERB':
+				y_pred.append(self.most_verbal)
+			else:
+				y_pred.append(self.dict_class[''])
+		return np.array(y_pred)
 	
 	def score(self, X_test, y_test):
-		return super().score(X_test, y_test, self.class_exception)
+		return super().score(X_test, y_test, self.dict_class[''])
 
-
-# TODO ? --> More sophisticated model : Random model following the distribution of the training data (passed in the fit method)
 
 
 
@@ -91,8 +155,9 @@ if __name__ == '__main__':
 	print('5 first input (X):', X[:5])
 	print('5 first output (y):', y[:5])
 	nb_class = len(dict_class.values())
+	#print(dict_class)
 	
-	rand_model = Random_Model(nb_class, class_exception=dict_class[''])
+	rand_model = Random_Model(nb_class, dict_class)
 	#model.fit(X, y)
 	print('5 first prediction:', rand_model.predict(X[:5]))
 	
@@ -100,19 +165,28 @@ if __name__ == '__main__':
 	print('nb_class:', nb_class) # Should be equal to 41 + 1 when there is no supersense
 	
 	precision, recall, f1_score, accuracy = rand_model.score(X_val, y_val)
-	print(f'Majority Class Selection model score: Acc={accuracy:.4} P={precision:.4f}, R={recall:.4f}, F1={f1_score:.4f}') # accuracy ~ 1/42
+	print(f'Random Class Selection model score: Acc={accuracy:.4} P={precision:.4f}, R={recall:.4f}, F1={f1_score:.4f}') # accuracy ~ 1/42
 	
 	
-	#maj_model = Majority_Class_Selection_Model()
-	maj_model = Majority_Class_Selection_Model(class_exception=dict_class[''])
+	rand_dist_model = Random_Distribution_Model(dict_class)
+	rand_dist_model.fit(X, y)
+	#print('5 first prediction:', rand_dist_model.predict(X[:5]))
+	precision, recall, f1_score, accuracy = rand_dist_model.score(X_val, y_val)
+	print(f'Random Distribution Class Selection model score: Acc={accuracy:.4} P={precision:.4f}, R={recall:.4f}, F1={f1_score:.4f}')
+	
+	
+	maj_model = Majority_Class_Selection_Model(dict_class)
 	maj_model.fit(X, y)
 	#print('5 first prediction:', maj_model.predict(X[:5]))
-	maj_model.class_exception = dict_class[''] # Useful to compute and see the usefulness of the F1 score versus the accuracy when the model predicts no supersense: Majority_Class_Selection_Model()
 	precision, recall, f1_score, accuracy = maj_model.score(X_val, y_val)
 	print(f'Majority Class Selection model score: Acc={accuracy:.4} P={precision:.4f}, R={recall:.4f}, F1={f1_score:.4f}')
 	
+	
+	
 	write_data(X_val, y_val, dict_class, 'val.gold')
+	write_data(X_val, rand_model.predict(X_val), dict_class, 'rand_class_val.pred')
 	write_data(X_val, maj_model.predict(X_val), dict_class, 'maj_class_val.pred')
+	write_data(X_val, rand_dist_model.predict(X_val), dict_class, 'rand_dist_class_val.pred')
 	
 	# Command to compute scores with dimsumeval: python dimsumeval.py -C ../../models/val.gold ../../models/maj_class_val.pred
 
