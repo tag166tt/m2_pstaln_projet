@@ -374,6 +374,9 @@ if __name__ == '__main__':
             plbls = {k - 1: v[1] for k, v in pdata["labels"].items()}
             assert all(len(t) <= 1 for t in ptags_mwe)
             words, poses = zip(*gdata["words"])
+            print(len(words))
+            print(len(gtags_mwe))
+            print(len(ptags_mwe))
             assert len(words) == len(gtags_mwe) == len(ptags_mwe)
             nToks += len(words)
             stats['nFullTagCorrect'] += sum(
