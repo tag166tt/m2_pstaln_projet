@@ -31,7 +31,10 @@ def train_test_split_sentences(X, y, test_size=0.3, random_state=0, shuffle=True
         else:
             sentence.append(line)
             sentence_tags.append(tag)
-
+    
+    if test_size == 0.:
+        return [y for x in X_by_sentences for y in x], [[]], [y_1 for x in y_by_sentences for y_1 in x], [[]]
+    
     X, X_val, y, y_val = train_test_split(X_by_sentences, y_by_sentences, test_size=test_size, random_state=random_state, shuffle=shuffle)
 
     X = [y for x in X for y in x]
@@ -70,11 +73,17 @@ def combine_sst_mwe(X, y_sst, y_mwe):
             last_B = -1
             nb_low = 0
         
+        #print(i, new_y_mwe, nb_low, seq_sst_low, seq_mwe_upp)
+        #print(xi)
+        
         #print(yi_mwe)
         if yi_mwe in ['<eos>', '', 'O'] or (xi[1] == '<eos>'):
             if (xi[1] == '<eos>'):
                 new_y_mwe[i] = '<eos>'
+            #print(nb_low)
             #print(yi_mwe, seq_mwe_upp)
+            prec_mwe = new_y_mwe[i-1]
+            
             if len(seq_sst_upp) > 1:
                 new_y_mwe[last_B] = 'B'
                 #print(i, seq_mwe_upp, seq_mwe_low, new_y_mwe)
@@ -84,7 +93,11 @@ def combine_sst_mwe(X, y_sst, y_mwe):
                         new_y_mwe[last_B+j] = 'I'
                         new_y_sst[last_B+j] = ''
                         if(seq_sst_upp[0] == ''):
-                            seq_sst_upp[0] = seq_sst_upp[j-n]
+                            #print(j, n, nb_low, seq_sst_upp)
+                            try:
+                                seq_sst_upp[0] = seq_sst_upp[j-n]
+                            except:
+                                seq_sst_upp[0] = ''
                     else:
                         n += 1
                 new_y_sst[last_B] = seq_sst_upp[0]
@@ -103,8 +116,16 @@ def combine_sst_mwe(X, y_sst, y_mwe):
                 new_y_sst[last_b] = seq_sst_low[0]
                 for j in range(1, len(seq_sst_low)):
                     new_y_sst[last_b+j] = ''
-            elif (len(seq_sst_upp) == 1):
+            elif (len(seq_sst_low) == 1):
                 new_y_mwe[i-1] = 'O'
+            
+            #print(nb_low)
+            if (nb_low > 0) and prec_mwe.islower():# or (len(seq_sst_low) >= 1)
+                for j in range(nb_low):
+                    if new_y_mwe[i-j-1].islower():
+                        new_y_mwe[i-j-1] = 'O'
+                if (len(seq_sst_upp) == 1):
+                    new_y_mwe[last_B] = 'O'
             
             seq_sst_low = []
             seq_mwe_low = []
@@ -128,6 +149,11 @@ def combine_sst_mwe(X, y_sst, y_mwe):
                     new_y_mwe[i-1] = 'o'
                 seq_sst_low = []
                 seq_mwe_low = []
+            
+            if (nb_low > 0) and (len(seq_sst_upp) == 0):
+                for j in range(nb_low):
+                    if new_y_mwe[i-j-1].islower():
+                        new_y_mwe[i-j-1] = 'O'
             
             if (last_B != -1) and (nb_low == 0):
                 if len(seq_sst_upp) > 1:
@@ -170,6 +196,11 @@ def combine_sst_mwe(X, y_sst, y_mwe):
                     new_y_mwe[i-1] = 'o'
                 seq_sst_low = []
                 seq_mwe_low = []
+            
+            if (nb_low > 0) and (len(seq_sst_upp) == 0):
+                for j in range(nb_low):
+                    if new_y_mwe[i-j-1].islower():
+                        new_y_mwe[i-j-1] = 'O'
             
             if last_B == -1:
                 last_B = i
@@ -215,8 +246,9 @@ def combine_sst_mwe(X, y_sst, y_mwe):
                     new_y_mwe[i-1] = 'O'
                 else:
                     new_y_mwe[i-1] = 'o'
+            """
             else:
-                new_y_mwe[i] = 'O'
+                #new_y_mwe[i] = 'O'
                 
                 if len(seq_sst_upp) > 1:
                     new_y_mwe[last_B] = 'B'
@@ -238,9 +270,11 @@ def combine_sst_mwe(X, y_sst, y_mwe):
                     new_y_mwe[i-1] = 'O'
                 
                 last_B = -1
+                #last_b = -1
                 seq_sst_upp = []
                 seq_mwe_upp = []
-                nb_low = -1
+                #nb_low = -1
+            """
                 
             nb_low += 1
             seq_sst_low = []
@@ -271,7 +305,12 @@ def write_data(X_test, y_sst, y_mwe, filename):
             num_mwe = num_prev_mwe if yi_mwe_ == 'I' else 0
             num_mwe = num_prev_mwe_lower if yi_mwe_ == 'i' else num_mwe
             
-            f.write(f'{xi[0]}\t{xi[1]}\t-\t{xi[3]}\t{yi_mwe_}\t{num_mwe}\t\t{yi_sst_}\n')
+            try:
+                f.write(str(f'{xi[0]}\t{xi[1]}\t-\t{xi[3]}\t{yi_mwe_}\t{num_mwe}\t\t{yi_sst_}\n'.encode('utf-8'), 'cp1252'))
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                f.write(str(f'{xi[0]}\t---\t-\t{xi[3]}\t{yi_mwe_}\t{num_mwe}\t\t{yi_sst_}\n'.encode('utf-8'), 'cp1252'))
+            
+            #f.write(f'{xi[0]}\t---\t-\t{xi[3]}\t{yi_mwe_}\t{num_mwe}\t\t{yi_sst_}\n')
 
             is_first = False
             if not yi_mwe.islower():
@@ -325,7 +364,7 @@ def encode_sentence(le_vocab, int_texts, int_labels, max_len, use_pos):
     return X, Y
 
 
-def transform(X, y, X_val, y_val, max_len=16, batch_size=64, use_pos=False):
+def transform(X, y, X_val, y_val, max_len=16, batch_size=64, use_pos=False, use_mwe_pred=False):
     le_pos = collections.defaultdict(lambda: len(le_pos))
     le = collections.defaultdict(lambda: len(le))
     le['<eos>'] = 0
@@ -358,7 +397,7 @@ def transform(X, y, X_val, y_val, max_len=16, batch_size=64, use_pos=False):
     if use_pos:
         return vocab, le_vocab, le_pos, le, train_loader, valid_loader
     else:
-        return vocab, le_vocab, le, train_loader, valid_loader
+        return vocab, le_vocab, None, le, train_loader, valid_loader
 
 
 def load_pretrained_weights(filename, vocab_size=None, le_vocab=None, from_pickle=False, dim=300):
@@ -421,26 +460,27 @@ def align_pred(X_orig, y_pred, le, is_mwe):
 from Model import Model
 
 class Simple_GRU(nn.Module):
-    def __init__(self, pretrained_weights, le, embed_size=300, hidden_size=128, use_pos=False):
+    def __init__(self, pretrained_weights, le, embed_size=300, hidden_size=128, use_pos=False, use_mwe=False):
         super().__init__()
         self.use_pos = use_pos
+        self.use_mwe = use_mwe
+        
+        nb_nn = 0
         if self.use_pos:
-            self.embed = nn.Embedding(len(le), embed_size, padding_idx=le['<eos>'])
-            self.embed.weight = nn.Parameter(pretrained_weights, requires_grad=False)
-            self.rnn = nn.GRU(embed_size+1, hidden_size, bias=False, num_layers=1, bidirectional=False, batch_first=True)
-            self.dropout = nn.Dropout(0.3)
-            self.decision = nn.Linear(hidden_size * 1 * 1, len(le))
-        else:
-            self.embed = nn.Embedding(len(le), embed_size, padding_idx=le['<eos>'])
-            self.embed.weight = nn.Parameter(pretrained_weights, requires_grad=False)
-            self.rnn = nn.GRU(embed_size, hidden_size, bias=False, num_layers=1, bidirectional=False, batch_first=True)
-            self.dropout = nn.Dropout(0.3)
-            self.decision = nn.Linear(hidden_size * 1 * 1, len(le))
+            nb_nn += 1
+        if self.use_mwe:
+            nb_nn += 1
+        
+        self.embed = nn.Embedding(len(le), embed_size, padding_idx=le['<eos>'])
+        self.embed.weight = nn.Parameter(pretrained_weights, requires_grad=False)
+        self.rnn = nn.GRU(embed_size+nb_nn, hidden_size, bias=False, num_layers=1, bidirectional=False, batch_first=True)
+        self.dropout = nn.Dropout(0.3)
+        self.decision = nn.Linear(hidden_size * 1 * 1, len(le))
 
     def forward(self, x):
-        if self.use_pos:
+        if self.use_mwe or self.use_pos:
             embed = self.embed(x[:, :, 0])
-            concat = torch.cat((x[:, :, 1].view(x.size(0), x.size(1), 1), embed), dim=2)
+            concat = torch.cat((x[:, :, 1:].view(x.size(0), x.size(1), -1), embed), dim=2)
             output, hidden = self.rnn(concat)
         else:
             embed = self.embed(x)
@@ -488,7 +528,7 @@ class NN_Model(Model): # Compatible with torch models only
 
     def predict(self, X_test):
         self.model.eval()
-        return torch.max(self.model(X_test), 2)[1]
+        return torch.max(self.model(X_test), -1)[1]
 
     def score(self, X_test, y_test, exception_class, le):
         #return super().score(X_test, y_test, exception_class)
@@ -580,12 +620,9 @@ class NN_CRF_Model(Model): # Compatible with torch+torchCRF models only
 
     def predict(self, X_test):
         self.nn_model.eval()
-        #return torch.max(self.model(X_test), 2)[1]
-        #print(X_test.size())
+        self.crf_model.eval()
         y_pred = self.nn_model(X_test)
-        #print(y_pred.size())
-        mask = (torch.max(y_pred, 2)[1] != 0)
-        #print(mask.size())
+        mask = (torch.max(y_pred, -1)[1] != 0)
         return torch.tensor(self.crf_model.decode(y_pred, mask=mask))
 
     def score(self, X_test, y_test, exception_class, le):
