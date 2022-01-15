@@ -32,7 +32,7 @@ class Random_Model(Model):
     
     def score(self, X_test, y_test):
         if self.mwe_prediction:
-            return super().score(X_test, y_test, self.dict_class['O'])
+            return super().score(X_test, y_test, self.dict_class[''])
         else:
             return super().score(X_test, y_test, self.dict_class[''])
 
@@ -84,7 +84,7 @@ class Random_Distribution_Model(Model):
     
     def score(self, X_test, y_test):
         if self.mwe_prediction:
-            return super().score(X_test, y_test, self.dict_class['O'])
+            return super().score(X_test, y_test, self.dict_class[''])
         else:
             return super().score(X_test, y_test, self.dict_class[''])
 
@@ -135,7 +135,7 @@ class Majority_Class_Selection_Model(Model):
     
     def score(self, X_test, y_test):
         if self.mwe_prediction:
-            return super().score(X_test, y_test, self.dict_class['O'])
+            return super().score(X_test, y_test, self.dict_class[''])
         else:
             return super().score(X_test, y_test, self.dict_class[''])
 
@@ -186,12 +186,14 @@ if __name__ == '__main__':
     
     X, y_sst = extract_data(dict_sst, data)
     X, y_mwe = extract_data(dict_mwe, data, extract_mwe=True)
-    X, X_val, y_sst, y_val_sst = train_test_split(X, y_sst, test_size=0.3, random_state=0, shuffle=True)
-    X, X_val, y_mwe, y_val_mwe = train_test_split(X, y_sst, test_size=0.3, random_state=0, shuffle=True)
+    X_, X_val, y_sst, y_val_sst = train_test_split(X, y_sst, test_size=0.3, random_state=0, shuffle=True)
+    X, X_val, y_mwe, y_val_mwe = train_test_split(X, y_mwe, test_size=0.3, random_state=0, shuffle=True)
     
     #print('X shape', X.shape, ', X_val shape', X_val.shape)
     #print('5 first input (X):', X[:5])
     #print('5 first sst output (y):', y_sst[:5])
+    #print('5 first mwe output (y):', y_mwe[:5])
+    print(dict_mwe)
     nb_sst = len(dict_sst.values())
     nb_mwe = len(dict_mwe.values())
     #print(dict_class)
